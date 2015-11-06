@@ -1,0 +1,117 @@
+---
+title: "Inferential Statistics Assignment 1 Part 2"
+author: "treepruner"
+date: "September 24, 2015"
+output: html_document
+---
+## Overview: 
+This is the project for the statistical inference class. 
+It illustrates via simulation and associated explanatory text the properties of the distribution of the mean of 40 exponentials. This is a plot an exponential function:
+```{r echo = FALSE, message=FALSE, warning=FALSE,  fig.height = 3, fig.width=3, }
+lambda = .2
+library(ggplot2)
+set.seed = 1138
+pop <- as.data.frame(rexp(1000, rate = lambda))
+colnames(pop) <- "x"
+
+g <- ggplot(pop, aes(x = x)) 
+g <- g + ggtitle("rexp(1000, rate = .2)")
+g <- g + xlab("x")
+g <- g + geom_histogram(alpha = .20, binwidth=.25, colour = "red", aes(y = ..density..))
+g
+```
+
+### Create a Simulation
+The simulation is based upon one in the RMD markdown file for section 07. The original code was simulated rolling a die. Here is the heart of that simulation: 
+
+| apply(matrix(sample(1 : 6, nosim * 10, replace = TRUE), nosim), 1, cfunc, 1
+0)
+
+The portion of the code related to the die was replaced by the rexp(1000, rate = lambda). The function and the portion of the code relating to changing the sample size was also removed. This is the simulation code I used: 
+```{r echo = TRUE,  messages = FALSE} 
+nosim <- 1000
+dat <- data.frame(x = matrix(sample(rexp(1000, rate = lambda), nosim * 40, replace = TRUE), nosim))
+
+```
+
+There were 1000 samples taken from 40 different simulations. The resulting data frame had 1000 rows and 40 columns. The mean was calculated for each row and stored in the last variable with:
+```{r, echo = TRUE}
+dat$row_mean = rowMeans(dat)
+```
+
+### Sample Mean versus Theoretical Mean: 
+The theoretical mean = 1 / lambda. In our case that is 1/.2 = 5.  
+
+The simulation.mean is the mean of those 40 means.
+```{r, echo = TRUE}
+simulation.mean <- mean(dat$row_mean)
+```
+
+```{r, echo = FALSE}
+simulation.mean 
+```
+
+This graph plots the distribution and overlays the theoretical and simulation means. The means are nearly the same, which is to be expected because the law of large numbers says the sample mean of iid samples is consistent for the population mean. A  dotted line was selected to display the theoretical mean in order for them both to be visible.       
+```{r, echo = FALSE, fig.width=9, fig.height = 6, fig.align='center' , messages = FALSE, warning= FALSE}
+theoretical.mean = 1 / lambda
+g1 <- ggplot(dat, aes(x = row_mean)) 
+g1 <- g1 + ggtitle("Simulation Results\n 1000 means of rexp() of n = 40, lambda = .2")
+g1 <- g1 + xlab(bquote('Sample Means \n Theoretical Mean = ' ~.(theoretical.mean) ~ 'Simulation Mean = '~.(simulation.mean)))
+g1 <- g1 + geom_histogram(alpha = .20, binwidth=.25, colour = "black", aes(y = ..density..))
+# lines & legend for means
+g1 <- g1 + geom_vline(aes(xintercept=theoretical.mean, color="theoretical.mean", linetype="theoretical.mean"), size=1, show_guide=TRUE)
+g1 <- g1 + geom_vline(aes(xintercept=simulation.mean, color="simulation.mean", linetype="simulation.mean"), size=1, show_guide=TRUE)
+g1 <- g1 + scale_colour_manual(name="means", values=c(simulation.mean="blue",theoretical.mean="red"))
+g1 <- g1 + scale_linetype_manual(name="means", values=c(theoretical.mean="dashed", simulation.mean="dotted"), guide=FALSE)
+g1
+```        
+        
+
+### Sample Variance versus Theoretical Variance: 
+```{r, echo = FALSE}
+theoretical.sd <- 1 / lambda  
+theoretical.variance <- (1 / lambda )^2 
+simulation.sd <- sd(dat$row_mean)
+simulation.variance <- var(dat$row_mean) 
+
+```
+
+The theoretical standard deviation for this population is 1 / lambda  which is 5.
+
+
+The theoretical variance is (1 / lambda )^2 which is 25.
+
+
+Per our TA Brian Canute, the expected standard deviation within the set of 1000 sample means is predicted by the sampling standard error. This is the standard deviation / sqrt(sample size). In  our case this is 5/sqrt(40) or 0.7905694
+
+
+The standard deviation of our simulation is
+```{r echo = FALSE}
+simulation.sd
+```
+
+The simulation is behaving as expected.
+
+### Distribution: 
+
+The distribution of the sample means looks completely different than the original plot. This is because the sample means vary around the population mean. From our online textbook, "The Central Limit Theorem states that the distribution of averages of iid variables becomes that of a standard normal as the sample size increases." So, if you collect enough sample means, the histogram of them will look like a normal distribution.
+
+The means of the samples can be compared to a normal distribution with a Q-Q plot. The Q-Q plot would be a straight line if it was perfectly normal. 
+
+```{r, echo = FALSE, fig.width=9, fig.height = 4, fig.align='center'}
+qplot(sample = dat$row_mean, stat = "qq" ) + labs(x = "Theoretical Values", y = "Observed Values")
+```
+
+Normalizing the simulation results by subtracting the simulation mean and dividing by the simulation standard deviation allows us to overlay normal distributon and visualize the differences better: 
+```{r, echo = FALSE, fig.width=9, fig.height = 4, fig.align='center'}
+dat$n_row_mean <-(dat$row_mean - simulation.mean) / simulation.sd 
+g2 <- ggplot(dat, aes(x = n_row_mean)) + geom_histogram(alpha = .20, binwidth=.3, colour = "black", aes(y = ..density..)) 
+g2 <- g2 + ggtitle("Normalized Simulation Results \n 1000 means of rexp() of n = 40, lambda = .2")
+g2 <- g2 + xlab("Normalized Sample Means")
+g2 <- g2 + stat_function(fun = dnorm, size = 2, colour = "red")
+g2
+```
+
+The distribution of normalized sample means approximates a normal distribution.
+
+

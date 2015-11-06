@@ -1,0 +1,112 @@
+---
+title: "inferential_assignment_1_part2"
+author: "treepruner"
+date: "September 24, 2015"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Description
+This part of the exercise analyzes the effect of citamin C on tooth growth in guinea pigs. The  ToothGrowth data in the R datasets package. 
+
+The response is the length of odontoblasts (teeth) in each of 10 guinea pigs at each of three dose levels of Vitamin C (0.5, 1, and 2 mg) with each of two delivery methods (orange juice or ascorbic acid).
+
+## Assumptions
+I assumed that the guinea pigs were randomly assigned to the treatment groups and each guinea pig only received on type of supplement, e.g., they were NOT paired observations.
+
+
+## Exploratory Data Analyses
+Determine the variables, class and sample values.
+```{r echo = FALSE, message = FALSE} 
+library(ggplot2)
+library(dplyr)
+data("ToothGrowth")
+str(ToothGrowth)
+```
+
+
+```{r echo = FALSE, message=FALSE, warning=FALSE,  fig.height = 3.5, fig.width = 3.5, }
+# Convert the variable dose from a numeric to a factor variable
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+
+g <- ggplot(ToothGrowth, aes(x = len, color = dose))
+g <- g + geom_density()
+g <- g + facet_grid(. ~ supp)
+g <- g + ggtitle( "Examining Shape of Data")
+g <- g + xlab ("Tooth Length") + ylab("Density") 
+g 
+
+
+oj_vj2 <- ggplot(ToothGrowth, aes(x = factor(dose), y = len, color = supp )) + geom_boxplot()
+oj_vj2 <- oj_vj2 + scale_y_continuous(breaks=seq(0,35,2))
+oj_vj2 <- oj_vj2 + facet_grid(.~supp)
+oj_vj2 <- oj_vj2 + ggtitle( "Boxplot by Dose and Supplement")
+oj_vj2 <- oj_vj2 + xlab ("Dose") + ylab("Tooth Length") 
+oj_vj2 
+
+
+```
+
+```{r echo = FALSE, message=FALSE, warning=FALSE,  fig.height = 2.5, fig.width = 3.5, }
+
+oj_vj1 <- ggplot(ToothGrowth, aes(x = dose, y = len, color =  supp)) + geom_point( alpha = .2, size = 4)
+oj_vj1 <- oj_vj1 + facet_grid(.~supp)
+oj_vj1 <- oj_vj1 + xlab ("Dose") + ylab("Tooth Length") 
+oj_vj1 <- oj_vj1 + ggtitle("Comparison by Supplement Type")
+oj_vj1
+
+dose2 <- ToothGrowth %>% filter(dose ==2)
+g3 <- ggplot(dose2, aes(x = len, color = supp ))
+g3 <- g3 + geom_density()
+g3 <- g3 + facet_grid(. ~ supp)
+g3 <- g3 + labs(x = "Supplement" )     
+g3 <- g3 + labs(y = "Tooth Growth Length") 
+g3 <- g3 + ggtitle( "Tooth Growth at Highest Dose")
+g3
+```
+
+
+## Data Summary
+```{r echo = FALSE, message = FALSE} 
+Treatment.Summary  <- ToothGrowth %>%  group_by(supp, dose) %>% summarise(n(), mean(len), median(len), IQR(len), sd(len), min(len), max(len))
+Treatment.Summary 
+```
+
+## Use Confidence Intervals and/or Hypothesis on ToothGrowth
+
+### Test 1
+The highest dose of each supplement has the highest growth. At  this level the mean and the median are approximately the same  for each supplement, but VC has a wider spread than OJ. Is this difference significant? Perform a T Test on the dose2 subset.
+
+```{r echo = FALSE, message = FALSE} 
+t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = dose2)
+```
+The 95% confidence interval for Test 1 contains 0, so we can not reject the NULL hypothesis that there is no different between the means of the groups.
+
+### Test 2
+There is an overlap in the boxplots for OJ at doses 1 and 2. Is this difference significant?
+```{r echo = FALSE, message = FALSE} 
+OJ_1_2 <- ToothGrowth %>% filter(dose != .5 & supp == "OJ")
+t.test(len ~ dose, paired = FALSE, var.equal = FALSE, data = OJ_1_2)
+```
+The 95% confidence interval for Test 2 does not contain 0 and the p value is less than .05, so these results are significantly  different from each other.
+
+
+### Test 3
+There is an overlap in the boxplots dose .5. Is this difference significant?
+```{r echo = FALSE, message = FALSE} 
+low <- ToothGrowth %>% filter(dose == .5 )
+t.test(len ~ supp, paired = FALSE, var.equal = FALSE, data = low)
+```
+
+The 95% confidence interval for Test 3 does not contain 0 ad the p value is less than .05, so these resuls are significantly different from each other.
+
+## Conclusions
+There sample sizes were very small, only 10 observations per supplement and dose combinations. The T-test is valid for small sample sizes.
+
+If you want to maximize guinea pig tooth growth either orange juice or Vitamin C at dose = 2mg are effective and there isn't a significant difference in their performance. Choose the supplement based upon price or availability.
+
+If you want to minimize guinea pig tooth growth, Vitamin C at the 0.5 mg dose is significantly lower than orange juice at 0.5 mg. 
+ 
+
+
